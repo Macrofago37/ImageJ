@@ -1,0 +1,97 @@
+// Macro para analisar imagens de pricrosirius do coração
+/////Luiz Felipe Martucci
+setBatchMode(true); 
+
+
+original=getTitle();
+substring1= substring(original, 0,3);
+run("Select All");
+run("Set Measurements...", "area area_fraction display add redirect=None decimal=2");
+List.setMeasurements;
+area_total= List.getValue("Area");
+selectImage(original);
+run("Duplicate...", " ");
+run("Lab Stack");
+close1=getTitle();
+run("Next Slice [>]");
+run("Duplicate...", " ");
+setThreshold(-1000000000000000000000000000000.0000, 43.6151);
+//run("Threshold...");
+setOption("BlackBackground", true);
+run("Convert to Mask");
+run("Median...", "radius=0.5");
+run("Invert");
+psr=getTitle();
+run("Create Selection");
+roiManager("Add");
+List.setMeasurements;
+psr_area= List.getValue("Area");
+close(close1);
+selectImage(original);
+run("Duplicate...", " ");
+run("Invert");
+run("Color Threshold...");
+min=newArray(3);
+max=newArray(3);
+filter=newArray(3);
+a=getTitle();
+run("RGB Stack");
+run("Convert Stack to Images");
+selectWindow("Red");
+rename("0");
+selectWindow("Green");
+rename("1");
+selectWindow("Blue");
+rename("2");
+min[0]=0;
+max[0]=255;
+filter[0]="pass";
+min[1]=0;
+max[1]=255;
+filter[1]="pass";
+min[2]=0;
+max[2]=86;
+filter[2]="pass";
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  setThreshold(min[i], max[i]);
+  run("Convert to Mask");
+  if (filter[i]=="stop")  run("Invert");
+}
+imageCalculator("AND create", "0","1");
+imageCalculator("AND create", "Result of 0","2");
+for (i=0;i<3;i++){
+  selectWindow(""+i);
+  close();
+}
+selectWindow("Result of 0");
+close();
+selectWindow("Result of Result of 0");
+rename(a);
+run("Dilate");
+run("Median...", "radius=7");
+run("Erode");
+n_tissue=getTitle();
+run("Create Selection");
+roiManager("Add");
+List.setMeasurements;
+area_nao_tecidual= List.getValue("Area");
+Table.create("Results");
+setResult("Área total", 0, area_total);
+setResult("Área não-tecidual", 0, area_nao_tecidual);
+setResult("PSR área", 0, psr_area);
+psr_percent= ((psr_area*100)/(area_total - area_nao_tecidual) );
+setResult("% Área PSR", 0, psr_percent);
+selectImage(original);
+close("\\Others");
+roiManager("Show All");
+setForegroundColor(0, 0, 0);
+roiManager("Select", 1);
+run("Fill");
+setForegroundColor(0, 0, 255);
+roiManager("Select", 0);
+roiManager("Draw");
+rename(substring1 + "_Analyzed");
+roiManager("reset");
+selectWindow("Results");
+setBatchMode(false); 
