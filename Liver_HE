@@ -1,0 +1,23 @@
+original= getTitle();
+run("Duplicate...", " ");
+close1= getTitle();
+run("Lab Stack");
+run("Next Slice [>]");
+run("Duplicate...", " ");
+mask1= getTitle();
+setAutoThreshold("Default dark");
+run("Threshold...");
+waitForUser("Selecionar Threshold");
+setOption("BlackBackground", false);
+run("Convert to Mask");
+run("Invert");
+//run("Adjustable Watershed");
+run("Adjustable Watershed", "tolerance=1");
+run("Analyze Particles...", "  circularity=0.50-1.00 display exclude clear");
+selectImage(mask1);
+run("Create Selection");
+selectImage(original);
+run("Restore Selection");
+rename(original + "_analyzed");
+close("\\Others");
+
