@@ -1,0 +1,91 @@
+//Autor: Luiz Felipe Martucci
+//Editada: 25/08/22
+//
+//Macro para análise de imagens do tecido adiposo.
+//
+//Funciona tanto para imagens do tecido adiposo branco quanto do tecido adiposo marrom. 
+//Essa macro foi especialmente desenvolvida para lidar com imagens desfocadas ou com adipócitos com a membrana comprometida
+
+
+run("Set Measurements...", "area area_fraction display add redirect=None decimal=2");
+run("Colors...", "foreground=white background=black selection=magenta");
+id = getImageID(); 
+title = getTitle(); 
+path= getInfo("image.directory");
+name=getInfo("image.filename");
+run("8-bit");
+run("Replace value", "pattern=0 replacement=255");
+getLocationAndSize(locX, locY, sizeW, sizeH); 
+width = getWidth(); 
+height = getHeight(); 
+tileWidth = width / 6; 
+tileHeight = height / 6; 
+for (y = 0; y < 6; y++) { 
+offsetY = y * height / 6; 
+ for (x = 0; x < 6; x++) { 
+offsetX = x * width / 6; 
+selectImage(id); 
+ call("ij.gui.ImageWindow.setNextLocation", locX + offsetX, locY + offsetY); 
+tileTitle = title + " [" + x + "," + y + "]"; 
+ run("Duplicate...", "title=" + tileTitle); 
+makeRectangle(offsetX, offsetY, tileWidth, tileHeight); 
+ run("Crop"); 
+} 
+} 
+selectImage(id); 
+close(); 
+run("Images to Stack", "name=Stack title=[] use");
+run("Convert to Mask", "method=Mean background=Dark calculate");
+run("Despeckle", "stack");
+run("Close-", "stack");
+for (i = 0; i < 3; i++) {
+run("Dilate", "stack");
+}
+run("Close-", "stack");
+run("Make Montage...", "columns=6 rows=6 scale=0.25");
+setOption("BlackBackground", false);
+run("Convert to Mask");
+run("Invert");
+run("Median...", "radius=.1");
+close("\\Others");
+run("Scale...", "x=- y=- width=width height=height interpolation=Bilinear average create");
+run("Convert to Mask");
+run("Invert");
+
+segment=getImageID();
+open(path+name);
+og=getImageID();
+selectImage(segment);
+run("Adjustable Watershed");
+run("Create Selection");
+roiManager("Add");
+selectImage(og);
+roiManager("Show All");
+run("Tile");
+selectImage(segment);
+run("Select None");
+run("Synchronize Windows");
+setTool("line");
+run("Line Width...", "line=9");
+waitForUser("Para corrigir a imagem", "Clicar em Sync All\nCorrigir a imagem com a linha:\n- Apertar DEL para remover bordas\n- Apertar F para desenhar bordas");
+selectWindow("Synchronize Windows");
+
+selectImage(segment);
+rename(replace(title, ".tif", ""));
+close("\\Others");
+run("Convert to Mask");
+run("Invert");
+
+run("Analyze Particles...", "size=1-Infinity pixel show=Outlines display exclude clear add");
+rename(replace(title, ".tif", "")+"_Mask");
+close("\\Others");
+
+open(path+name);
+rename(replace(title, ".tif", "")+"_Analyzed");
+closeimg=getTitle();
+roiManager("Show All");
+run("Flatten");
+roiManager("reset");
+close(closeimg);
+
+
